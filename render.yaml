@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: flag-status-api
+    env: python
+    buildCommand: ""
+    startCommand: python flag_status_api.py
+    plan: free
