@@ -7,39 +7,39 @@ app = Flask(__name__)
 @app.route("/flag-status", methods=["GET"])
 def flag_status():
     url = "https://www.orangebeachal.gov/170/Beach-Safety-Mollys-Patrol"
-    response = requests.get(url)
+
+    try:
+        response = requests.get(url, timeout=10)
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Request failed: {str(e)}"}), 500
 
     if response.status_code != 200:
-        return jsonify({"error": "Failed to fetch page"}), 500
+        return jsonify({"error": f"Failed to fetch page, status: {response.status_code}"}), 500
 
     soup = BeautifulSoup(response.text, "html.parser")
-    content = soup.find("div", class_="ModuleContent")
+    page_text = soup.get_text(separator=' ', strip=True).lower()
 
-    if not content:
-        return jsonify({"error": "Could not find flag info"}), 404
+    # Debug: log the first 500 chars to Render logs
+    print("🔍 PAGE TEXT (trimmed):", page_text[:500])
 
-    text = content.get_text(strip=True)
-
-    if "Yellow Flag" in text:
+    if "yellow flag" in page_text:
         color = "Yellow"
         hazard = "Medium"
         description = "Moderate surf and/or currents"
-    elif "Red Flag" in text:
+    elif "red flag" in page_text:
         color = "Red"
         hazard = "High"
         description = "High surf and/or strong currents"
-    elif "Green Flag" in text:
+    elif "green flag" in page_text:
         color = "Green"
         hazard = "Low"
         description = "Calm conditions, exercise caution"
-    elif "Purple Flag" in text:
+    elif "purple flag" in page_text:
         color = "Purple"
         hazard = "Marine Pests"
         description = "Dangerous marine life"
     else:
-        color = "Unknown"
-        hazard = "Unknown"
-        description = "Unable to determine flag status"
+        return jsonify({"error": "Flag not found in page text"}), 404
 
     return jsonify({
         "color": color,
